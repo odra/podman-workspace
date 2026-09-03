@@ -1,0 +1,97 @@
+#!/bin/bash
+set -euo pipefail
+
+PODMAN_WS_IMAGE=localhost/podman-workspace:base
+PODMAN_WS_VOLUMES=()
+PODMAN_WS_PORTS=()
+PODMAN_WS_NETWORK=bridge
+PODMAN_WS_UID_GID="$(id -u):$(id -g)"
+PODMAN_WS_WORKDIR=/workspace
+PODMAN_WS_CWD="$(pwd)"
+PODMAN_WS_HOME=/opt/podman-workspace
+    
+usage() {
+    cat << EOF
+Usage: $(basename "$0") [OPTIONS]
+
+A script that runs a container keeping user/group IDs mounting current working dir with options for volumes, networks, and ports.
+
+It will run into interactive mode with /bin/bash into the current working dir, providing a temporary isolated environment (as far as OCI Containers go).
+
+Options:
+  -i, --image=<image>       [Optional] Container image to use (default: localhost/podman-workspace:base).
+  -n, --network=<network>   [Optional] Sets a network to use (default: bridge).
+  -v, --volume=<volume>     [Optional] Additional volume to mount (e.g, /host/path:/container/path). 
+                            Can be used multiple times.
+  -p, --port=<port>         [Optional] Port to publish (e.g., 8080:80). 
+                            Can be used multiple times.
+  -h, --help                Display this help message and exit.
+
+Examples:
+  $(basename "$0")
+  $(basename "$0") --image=localhost/podman-workspace:base --network=host --volume=/app/data:/data:ro,z --volume=/app/logs:/logs --port=3000:3000/udp --port=9229:9229
+
+EOF
+    exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --image=*)
+            PODMAN_WS_IMAGE="${1#*=}"
+            shift
+            ;;
+        --volume=*)
+            PODMAN_WS_VOLUMES+=("${1#*=}")
+            shift
+            ;;
+        --port=*)
+            PODMAN_WS_PORTS+=("${1#*=}")
+            shift
+            ;;
+        --network=*)
+            PODMAN_WS_NETWORK="${1#*=}"
+            shift
+            ;;
+        --help|-h)
+            usage
+            ;;
+        *)
+            echo "Error: Unknown argument '$1'"
+            exit 1
+            ;;
+    esac
+done
+
+VOLUME_ARGS=(
+    # current working directory
+    "--volume=${PODMAN_WS_CWD}:${PODMAN_WS_WORKDIR}:Z"
+    # vim volumes
+    "--volume=${HOME}/.vim:${PODMAN_WS_HOME}/.vim:ro,z"
+    "--volume=${HOME}/.vimrc:${PODMAN_WS_HOME}/.vimrc:ro,z"
+)
+for vol in "${PODMAN_WS_VOLUMES[@]}"; do
+    VOLUME_ARGS+=("--volume=${vol}:Z")
+done
+
+PORTS_ARGS=()
+for port in "${PODMAN_WS_PORTS[@]}"; do
+    PORTS_ARGS+=("--publish=${port}")
+done
+
+exec podman run \
+--rm \
+--interactive \
+--tty \
+--userns=keep-id \
+--user="${PODMAN_WS_UID_GID}" \
+--workdir="${PODMAN_WS_WORKDIR}" \
+--hostname="podman-workspace" \
+--cap-drop=ALL \
+--security-opt=no-new-privileges \
+--env="TERM=${TERM}" \
+--network=${PODMAN_WS_NETWORK} \
+"${VOLUME_ARGS[@]}" \
+"${PORTS_ARGS[@]}" \
+"${PODMAN_WS_IMAGE}" \
+/bin/bash

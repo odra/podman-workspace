@@ -1,0 +1,13 @@
+FROM quay.io/fedora/fedora:44
+
+ARG USERNAME
+ARG UID
+ARG GID
+
+ENV HOME=/opt/podman-workspace
+
+RUN dnf install -y vim
+
+RUN  groupadd -g ${GID} ${USERNAME} || true && \
+useradd -m -u ${UID} -g ${GID} -d ${HOME} -s /bin/bash ${USERNAME} || true && \
+chown -R ${UID}:${GID} ${HOME}
