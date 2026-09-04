@@ -4,6 +4,7 @@ set -euo pipefail
 PODMAN_WS_IMAGE=localhost/podman-workspace:base
 PODMAN_WS_VOLUMES=()
 PODMAN_WS_PORTS=()
+PODMAN_WS_ENV_VARS=()
 PODMAN_WS_NETWORK=bridge
 PODMAN_WS_UID_GID="$(id -u):$(id -g)"
 PODMAN_WS_WORKDIR=/workspace
@@ -19,13 +20,15 @@ A script that runs a container keeping user/group IDs mounting current working d
 It will run into interactive mode with /bin/bash into the current working dir, providing a temporary isolated environment (as far as OCI Containers go).
 
 Options:
-  -i, --image=<image>       [Optional] Container image to use (default: localhost/podman-workspace:base).
-  -n, --network=<network>   [Optional] Sets a network to use (default: bridge).
-  -v, --volume=<volume>     [Optional] Additional volume to mount (e.g, /host/path:/container/path). 
-                            Can be used multiple times.
-  -p, --port=<port>         [Optional] Port to publish (e.g., 8080:80). 
-                            Can be used multiple times.
-  -h, --help                Display this help message and exit.
+  --image=<image>             [Optional] Container image to use (default: localhost/podman-workspace:base).
+  --network=<network>         [Optional] Sets a network to use (default: bridge).
+  --env-var=<name>=<value>    [Optional] set a environment variable 
+                              Can be used multiple times
+  --volume=<volume>           [Optional] Additional volume to mount (e.g, /host/path:/container/path). 
+                              Can be used multiple times.
+  --port=<port>               [Optional] Port to publish (e.g., 8080:80). 
+                              Can be used multiple times.
+  --help                      Display this help message and exit.
 
 Examples:
   $(basename "$0")
@@ -39,6 +42,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --image=*)
             PODMAN_WS_IMAGE="${1#*=}"
+            shift
+            ;;
+        --env-var=*)
+            PODMAN_WS_ENV_VARS+=("${1#*=}")
             shift
             ;;
         --volume=*)
@@ -71,13 +78,19 @@ VOLUME_ARGS=(
     "--volume=${HOME}/.vimrc:${PODMAN_WS_HOME}/.vimrc:ro,z"
 )
 for vol in "${PODMAN_WS_VOLUMES[@]}"; do
-    VOLUME_ARGS+=("--volume=${vol}:Z")
+    VOLUME_ARGS+=("--volume=${vol}")
 done
 
 PORTS_ARGS=()
 for port in "${PODMAN_WS_PORTS[@]}"; do
     PORTS_ARGS+=("--publish=${port}")
 done
+
+ENV_ARGS=()
+for env_var in "${PODMAN_WS_ENV_VARS[@]}"; do
+    PORTS_ARGS+=("--env=${env_var}")
+done
+
 
 exec podman run \
 --rm \
@@ -90,6 +103,7 @@ exec podman run \
 --cap-drop=ALL \
 --security-opt=no-new-privileges \
 --env="TERM=${TERM}" \
+"${ENV_ARGS[@]}" \
 --network=${PODMAN_WS_NETWORK} \
 "${VOLUME_ARGS[@]}" \
 "${PORTS_ARGS[@]}" \

@@ -1,0 +1,10 @@
+FROM localhost/podman-workspace:base
+
+# USERNAME is needed because gcloud package creates a $HOME/.config directory
+ARG USERNAME
+
+COPY files /
+
+RUN dnf install -y gcloud claude-code
+
+RUN chown -R ${USERNAME} ${HOME}

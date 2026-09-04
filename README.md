@@ -10,13 +10,15 @@ It will run into interactive mode with /bin/bash into the current working dir, p
 podman-workspace [OPTIONS]
 
 Options:
-  -i, --image=<image>       [Optional] Container image to use (default: localhost/podman-workspace:base).
-  -n, --network=<network>   [Optional] Sets a network to use (default: bridge).
-  -v, --volume=<volume>     [Optional] Additional volume to mount (e.g, /host/path:/container/path). 
-                            Can be used multiple times.
-  -p, --port=<port>         [Optional] Port to publish (e.g., 8080:80). 
-                            Can be used multiple times.
-  -h, --help                Display this help message and exit.
+  --image=<image>             [Optional] Container image to use (default: localhost/podman-workspace:base).
+  --network=<network>         [Optional] Sets a network to use (default: bridge).
+  --env-var=<name>=<value>    [Optional] set a environment variable 
+                              Can be used multiple times
+  --volume=<volume>           [Optional] Additional volume to mount (e.g, /host/path:/container/path). 
+                              Can be used multiple times.
+  --port=<port>               [Optional] Port to publish (e.g., 8080:80). 
+                              Can be used multiple times.
+  --help                      Display this help message and exit.
 
 Examples:
   podman-workspace
