@@ -5,6 +5,8 @@ ARG USERNAME
 
 COPY files /
 
-RUN dnf install -y gcloud claude-code
+RUN dnf update -y && \
+dnf install -y gcloud claude-code && \
+dnf clean all
 
 RUN chown -R ${USERNAME} ${HOME}

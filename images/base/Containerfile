@@ -5,8 +5,7 @@ ARG UID
 ARG GID
 
 ENV HOME=/opt/podman-workspace
-
-RUN dnf install -y vim
+ENV PATH=$PATH:/opt/podman-workspace/.local/bin
 
 RUN  groupadd -g ${GID} ${USERNAME} || true && \
 useradd -m -u ${UID} -g ${GID} -d ${HOME} -s /bin/bash ${USERNAME} || true && \
