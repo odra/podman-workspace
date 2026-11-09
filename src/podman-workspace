@@ -8,6 +8,7 @@ PODMAN_WS_ENV_VARS=()
 PODMAN_WS_NETWORK=bridge
 PODMAN_WS_UID_GID="$(id -u):$(id -g)"
 PODMAN_WS_WORKDIR=/workspace
+PODMAN_WS_MODE=workspace
 PODMAN_WS_CWD="$(pwd)"
 PODMAN_WS_HOME=/opt/podman-workspace
     
@@ -28,6 +29,9 @@ Options:
                               Can be used multiple times.
   --port=<port>               [Optional] Port to publish (e.g., 8080:80). 
                               Can be used multiple times.
+  --mode=<mode>               [Optional] Set mode type (default: workspace)
+                              workspace: write access to /workpace (default behavior)
+                              sidekick: /workspace is mounted with read-only accesss
   --help                      Display this help message and exit.
 
 Examples:
@@ -60,23 +64,36 @@ while [[ $# -gt 0 ]]; do
             PODMAN_WS_NETWORK="${1#*=}"
             shift
             ;;
+	--mode=*)
+	    PODMAN_WS_MODE="${1#*=}"
+            shift
+            ;;
         --help|-h)
             usage
             ;;
         *)
-            echo "Error: Unknown argument '$1'"
+            echo "Error: Unknown argument '$1'" 1>&2
             exit 1
             ;;
     esac
 done
 
-VOLUME_ARGS=(
-    # current working directory
-    "--volume=${PODMAN_WS_CWD}:${PODMAN_WS_WORKDIR}:Z"
-    # vim volumes
-    "--volume=${HOME}/.vim:${PODMAN_WS_HOME}/.vim:ro,z"
-    "--volume=${HOME}/.vimrc:${PODMAN_WS_HOME}/.vimrc:ro,z"
-)
+VOLUME_ARGS=()
+
+if [ -d "${HOME}/.vim" ]; then
+     VOLUME_ARGS+=("--volume=${HOME}/.vim:${PODMAN_WS_HOME}/.vim:ro,z")
+fi
+
+if [ -f "${HOME}/.vimrc" ]; then
+    VOLUME_ARGS+=("--volume=${HOME}/.vimrc:${PODMAN_WS_HOME}/.vimrc:ro,z")
+fi
+
+if [ "${PODMAN_WS_MODE}" == "workspace" ]; then
+    VOLUME_ARGS+=("--volume=${PODMAN_WS_CWD}:${PODMAN_WS_WORKDIR}:z")
+elif [ "${PODMAN_WS_MODE}" == "sidekick" ]; then
+    VOLUME_ARGS+=("--volume=${PODMAN_WS_CWD}:${PODMAN_WS_WORKDIR}:z,ro")
+fi
+
 for vol in "${PODMAN_WS_VOLUMES[@]}"; do
     VOLUME_ARGS+=("--volume=${vol}")
 done

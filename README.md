@@ -41,6 +41,9 @@ Options:
                               Can be used multiple times.
   --port=<port>               [Optional] Port to publish (e.g., 8080:80). 
                               Can be used multiple times.
+  --mode=<mode>               [Optional] Set mode type (default: workspace)
+                              workspace: write access to /workpace (default behavior)
+                              sidekick: /workspace is mounted with read-only accesss
   --help                      Display this help message and exit.
 
 Examples:
